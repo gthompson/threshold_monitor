@@ -14,7 +14,7 @@ else
 fi
 cp -r * $RUN_DIR
 # copy wf2obspy
-cp ../../pymodules/wf2obspy.py $RUN_DIR/src/threshold_monitor/
+#cp ../../pymodules/wf2obspy.py $RUN_DIR/src/threshold_monitor/
 # install man pages
 mkdir -p $RUN_DIR/man/man1
 mv $RUN_DIR/src/threshold_monitor/*.1 $RUN_DIR/man/man1
