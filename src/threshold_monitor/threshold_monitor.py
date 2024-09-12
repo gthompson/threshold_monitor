@@ -11,10 +11,10 @@ import matplotlib.pyplot as plt
 import multiprocessing as mp
 import re
 import fcntl
-mysql_available = False
+mysql_imported = False
 try:
     import mysql.connector as mysql
-    mysql_available = True
+    mysql_imported = True
 except:
     print('mysql not imported')
 ################################################################################
@@ -168,7 +168,7 @@ class MyDataClient(data_ingestion.RealTimeDataClient):
         
         # connect to mysql database
         mysql_info = params['mysql_info']
-        if mysql_available:
+        if mysql_imported:
             self.db = mysql.connect(
                 user = mysql_info['user'],
                 password = mysql_info['password'],
@@ -222,7 +222,7 @@ class MyDataClient(data_ingestion.RealTimeDataClient):
         data_ingestion.send_email_alarm(subject, body, self.email_list, pngfile=pngfile, verbose=True)
 
         # send update to mysql database
-        if mysql_available:
+        if mysql_imported:
             query_cursor = self.db.cursor()
             if self.station == "VMT":
                 sta_id = 13
