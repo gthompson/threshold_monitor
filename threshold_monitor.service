@@ -1,0 +1,13 @@
+[Unit]
+Description=Threshold Monitor for Pipeline
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=aecrt
+ExecStart=/usr/bin/env bash ${HOME}/run_threshold_monitor/run.sh daemonfiles
+
+[Install]
+WantedBy=multi-user.target

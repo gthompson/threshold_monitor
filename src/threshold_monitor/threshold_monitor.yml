@@ -1,0 +1,74 @@
+api: orb2obspy
+#datasource: 137.229.32.211:6520
+datasource: default
+mode: realtime
+filterdef: 
+  type: highpass
+  freq: 
+    - 0.05
+  corners: 4
+  zerophase: False
+duration: -1 # run forever if -1
+bufferSecs: 10.0
+secondsPerPacket: 1.0
+nslc: AK.*..HN? # stations will only be used if they are defined in the thresholds dict AND they match this regular expression
+#nslc: HT.10627..HNZ
+xmlfile: pipeline_stations.xml
+maximum_latency: 600.0 # packets with latency exceeding this will trigger a latency alarm, and not get processed into PGA values
+threshold_alarm_timeout: 60.0 # block new alarms at same station for this many seconds after a threshold alarm, unless the status increases (e.g. from LOW to MEDIUM) within this time period
+latency_alarm_timeout: 60.0 # block new alarms at same station for this many seconds after a latency alarm
+email_list: 
+- pipeline-alarm-testin-aaaan3b5yyxfcvwjabgeqqkvqi@akearthquake.slack.com
+- uaf-aec-systems@alaska.edu
+remove_instrument_response: False
+thresholds: # station will only be used if defined here AND matches nslc filter regular expression
+  PS01: 
+    LOW: 0.05
+    MEDIUM: 0.10
+    HIGH: 0.15
+  PS04: 
+    LOW: 0.05
+    MEDIUM: 0.10
+    HIGH: 0.15
+  PS11: 
+    LOW: 0.05
+    MEDIUM: 0.10
+    HIGH: 0.15
+  PS05: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.20
+  PS06: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.20 
+  PS07: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.20
+  PS08: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.20
+  PS09: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.20
+  PS10: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.25
+  PS12: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.25
+  VMT: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.25
+
+mysql_info:
+  host: localhost
+  database: pipeline
+  user: pipe
+  password: VMP1PA3CAk

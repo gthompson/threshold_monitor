@@ -1,0 +1,27 @@
+api: datascope2obspy
+datasource:  /aec/db/instrument_test/archive/inst_testdb_2024_08
+mode: archive
+starttime = "2024/08/14T23:00:00"
+endtime = "2024/08/15T01:00:00"
+filterdef: 
+  type: highpass
+  freq: 
+    - 0.1
+  corners: 4
+duration: -1 # run forever if -1
+bufferSecs: 10.0
+secondsPerPacket: 1.0
+nslc: HT.10627..HN? # stations will only be used if they are defined in the thresholds dict AND they match this regular expression
+default_calib:  1000000 
+xmlfile: /Users/gthompson/Developer/GitHub/antelope/bin/rt/orbtm/orbtm_simulate/pipeline_stations.xml
+maximum_latency: 20.0 # packets with latency exceeding this will trigger a latency alarm
+threshold_alarm_timeout: 30.0 # block new alarms at same station for this many seconds after an alarm
+email_list: 
+- gthompson@alaska.edu
+- thompsong@usf.edu
+remove_instrument_response: False
+thresholds: # station will only be used if defined here AND matches nslc filter regular expression
+  10627: 
+    LOW: 0.05
+    MEDIUM: 0.10
+    HIGH: 0.15

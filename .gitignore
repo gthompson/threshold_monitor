@@ -1,0 +1,7 @@
+obsolete/
+abandoned_classes/
+backups/
+__pycache__/
+*.py[cod]
+*.png
+sprint7/

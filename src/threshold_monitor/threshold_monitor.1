@@ -1,0 +1,199 @@
+.TH threshold_monitor.py 1 "$Date$"
+.SH NAME
+threshold_monitor.py \- compute peak-ground-acceleration (PGA) on data packets and issue threshold exceedance detections and alarms
+.SH SYNOPSIS
+.nf
+\fBthreshold_monitor.py \fP[-s \fIstarttime\fP] [-e \fIendtime\fP]
+                [-a \fIapi\fP] [-n \fInslc\fP] [-p \fIpfpath\fP]
+                [-o \fIoutputdir\fP] [-v] [-l] [-b] 
+.fi
+.SH DESCRIPTION
+\fBthreshold_monitor.py\fP is a program that continuously reads waveform packets from an Antelope orbserver,
+Seedlink server, or synthesized packets from a DataScope CSS3.0 database, detrends, filters, and calibrates packets,
+computes the PGA within each packet, compares PGA to pre-defined PGA thresholds for LOW, MEDIUM, and HIGH levels,
+triggers threshold exceedance detections at the individual channel level, then groups detections at station level and
+emits threshold alarms accordingly. It also tracks the latency of packets as they are retrieved, and emits latency alarms.
+Packets for each station are processed in a separate thread so that problematic packets for one station have no impact on others.
+Much of the heavy lifting is done by \fBdata_ingestion.py\fP, which handles all the parameter file reading, packet retrieval, buffering,
+detrending, filtering, and latency monitoring. Waveform data from packets are merged with a longer data buffer to enable stable detrending
+and filtering.
+
+.SH OPTIONS
+.IP "--api api or -a api"
+Which API to use. This defaults to orb2obspy, which reads
+waveform packets from an orbserver. Other choices are 
+slink2obspy, which reads waveform packets from a Seedlink server,
+and datascope2obspy, which reads simulated packets from a DataScope
+database. These strings refer to separate programs that are 
+imported by \fBdata_ingestion.py\fP called \fBorb2obspy.py\fP,
+\fBslink2obspy.py\fP, and \fBdatascope2obspy.py\fP.
+.IP "--starttime starttime or -s starttime"
+Where to position the read pointer for the input
+waveform packets. starttime must be a string understandable
+by obspy.UTCDateTime(). This is only implemented for replaying
+simulated waveform packets from a DataScope database, in
+conjunction with the datascope2obspy API (see -a option) and an 
+endtime (see -e option). If this option is not specified,
+starttime defaults to the current date and time.
+.IP "--endtime endtime or -e endtime"
+When to stop reading waveform packets. endtime must be a string 
+understandable by obspy.UTCDateTime(). This is useful not only
+useful for replaying simulated waveform packets from a DataScope 
+database, but is also useful for testing purposes, to stop the 
+program at a certain time. However, the duration parameter in the
+parameter file is usually used for the latter. If this option is 
+not specified, endtime defaults to 2099/12/31, so the program will
+run indefinitely.
+.IP "-n nslc or --nslc nslc"
+nslc is a string that is used to select waveform packets by SEED id. 
+The general format is network.station.location.channel. It can
+contain wildcards * and ?. Defaults to AK.*.*.HN? which selects
+all strong motion channels on the AK network with a sampling rate of
+>80 Hz. This includes all the Trans-Alaska Pipeline EMS strong motion
+stations. This is only really used for testing purposes for 1 channel
+or 1 station, because processing is already limited to the stations
+specified in the thresholds array in the parameter file, which by default
+restricts processing to Trans-Alaska Pipeline EMS stations.
+.IP "-o outputdir or --outputdir outputdir"
+Path to a directly for all outputs. This includes PNG files for latency
+alarms, and threshold exceedance alarms, as well as CSV files that log
+latency information, and PGA data, for each packet. There is one CSV file
+per station.
+.IP "-p parameterfile or --inputfile parameterfile"
+Path to parameter file. This should be in YML format. 
+This argument is optional and if not specified defaults to \fBthreshold_monitor.yml\fP.
+A superset of command line parameters can be specified here, but command line parameters,
+if given, will override the value specified in the parameter file.
+.IP "-v or --verbose"
+Verbose output flag. Useful for debugging.
+.IP "-l or --latency"
+Turns on latency tracking (and latency alarms).
+.IP "-b or --benchmarking"
+Turns on execution time tracking of different parts of the program, and outputs a summary
+of this at the end of the program run. This is useful for code optimization, and uses
+the timings class in \fBdata_ingestion.py\fP.
+
+.SH "PROGRAM PARAMETER FILE"
+The \fBthreshold_monitor.py\fP parameter file contains all of the information
+necessary for specifying channels and filters for PGA computation and threshold monitoring.
+It is specified in YML format. Following is an example \fBthreshold_monitor.py\fP parameter file.
+.in 2c
+.ft CW
+.nf
+
+.ne 5
+
+#
+#  threshold_monitor.py parameter file
+#
+
+.ne 12
+
+# api to use
+api: orb2obspy
+
+# a datasource can be explicitly given
+#datasource: 137.229.32.211:6520
+
+# mode realtime or archive. archive is used to read old data, but setting a starttime in the past will set this anyway.
+mode: realtime
+
+# duration in seconds to run the program for. overwritten by command line variable endtime, if given. Default: -1 which means run forever.
+duration: -1
+
+# filter to use to process waveform data buffers. the length of the data buffer in seconds will be at least twice the period
+# of the lowest filter frequency (e.g. 20-s for a 0.1 Hz high pass filter)
+filterdef: 
+  type: highpass
+  freq: 
+    - 0.1
+  corners: 4
+
+# default buffer length, in seconds. actual buffer length used will be whichever is greater of this, or that forced by filter specification above
+bufferSecs: 10.0
+
+# path to StationXML file
+xmlfile: pipeline_stations.xml
+
+# whether to just do a calibration correction, or perform a full instrument response removal
+# since we are usually in the flat passband of a strong motion sensor, or a broadband seismometer, calibration correction usually suffices
+remove_instrument_response: False
+
+# number of seconds expected in a data packet. 1.0 for an orbserver. only really used in archive mode for chomping through a database, simulating packets of this size.
+secondsPerPacket: 1.0
+
+# net-sta-loc-chan or SEED id pattern to use. can be left as-is for Trans-Alaska Pipeline EMS stations as
+# stations will only be used if they are defined in the thresholds dict AND they match this regular expression
+nslc: AK.*..HN?  
+
+# if latency of a data packet exceeds this (in seconds), send a latency alarm, and do not calculate PGA
+maximum_latency: 600.0 
+
+# block new threshold alarms at same station and state (e.g. LOW, MEDIUM, or HIGH) for this many seconds after an alarm
+# higher state alarms will still go through (e.g. if we have a HIGH quickly following a MEDIUM, or MEDIUM or HIGH after a LOW)
+threshold_alarm_timeout: 60.0 
+
+# block new alarms at same station for this many seconds after a latency alarm
+latency_alarm_timeout: 60.0 
+
+# list of emails to send latency and threshold alarms to
+email_list: 
+- gthompson@alaska.edu
+- thompsong@usf.edu
+
+# thresholds. A station will only be used if defined here AND matches nslc filter regular expression.
+# a separate thread is run for each station specied here, but not waveform packets would be collected if they
+# did not also match the nslc regular expression
+# each API has a select_stream() method that acts on this
+thresholds: 
+  PS01: 
+    LOW: 0.05
+    MEDIUM: 0.10
+    HIGH: 0.15
+  PS04: 
+    LOW: 0.05
+    MEDIUM: 0.10
+    HIGH: 0.15
+  PS11: 
+    LOW: 0.05
+    MEDIUM: 0.10
+    HIGH: 0.15
+  PS05: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.20
+  PS06: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.20 
+  PS07: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.20
+  PS08: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.20
+  PS09: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.20
+  PS10: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.25
+  PS12: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.25
+  VMT: 
+    LOW: 0.08
+    MEDIUM: 0.15
+    HIGH: 0.25
+
+.
+.SH AUTHOR
+Glenn Thompson, gthompson@alaska.edu
+.br
+Alaska Earthquake Center
+2024-08-14

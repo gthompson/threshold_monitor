@@ -1,0 +1,16 @@
+[project]
+name = "threshold_monitor"
+version = "0.0.1"
+authors = [ { name="Glenn Thompson", email="gthompson@alaska.edu" } ]
+description = "monitor waveform data packets, track latency, compute PGA, issue threshold alarms"
+readme = "README.md"
+requires-python = ">=3.8" 
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License", 
+    "Operating System :: Linux or MacOS/darwin",
+]
+
+[project.urls]
+Homepage = "github.com/akquake/antelope/wiki/threshold_monitor"
+Issues = "github.com/akquake/antelope/issues"
