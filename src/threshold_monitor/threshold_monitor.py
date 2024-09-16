@@ -261,8 +261,6 @@ class MyDataClient(data_ingestion.RealTimeDataClient):
     
     def analyze(self):
 
-        return # SCAFFOLD
- 
         pga_dict = self.computePGA()
         self.update_timings('computing_max')
 

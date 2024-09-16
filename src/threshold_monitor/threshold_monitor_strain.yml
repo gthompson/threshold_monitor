@@ -17,8 +17,7 @@ maximum_latency: 600.0 # packets with latency exceeding this will trigger a late
 threshold_alarm_timeout: 60.0 # block new alarms at same station for this many seconds after a threshold alarm, unless the status increases (e.g. from LOW to MEDIUM) within this time period
 latency_alarm_timeout: 60.0 # block new alarms at same station for this many seconds after a latency alarm
 email_list: 
-- pipeline-alarm-testin-aaaan3b5yyxfcvwjabgeqqkvqi@akearthquake.slack.com
-- uaf-aec-systems@alaska.edu
+- thompsong@usf.edu
 remove_instrument_response: False
 thresholds: # station will only be used if defined here AND matches nslc filter regular expression
   PS01: 

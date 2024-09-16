@@ -22,8 +22,10 @@ fi
 mkdir -p ${OUTPUTDIR}
 rm -f ${OUTPUTDIR}/*.csv
 cd $SRC_DIR
-if [ ${LOGFILE} ]; then
-    python threshold_monitor.py -l -p threshold_monitor.yml -v -a ${API} -n ${NSLC} -o ${OUTPUTDIR}   > ${LOGFILE} # &
+if [ ${HOSTNAME}=="strain" ]; then
+    python threshold_monitor.py -l -p threshold_monitor_strain.yml -v -n ${NSLC} -o ${OUTPUTDIR}   > ${LOGFILE} # &
+elif [ ${HOSTNAME}=="hal9000" ]; then
+    python threshold_monitor.py -l -p threshold_monitor_hal.yml -v -n ${NSLC} -o ${OUTPUTDIR}
 else
     python threshold_monitor.py -l -p threshold_monitor.yml -a ${API} -n ${NSLC} -o ${OUTPUTDIR}
 fi

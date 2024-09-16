@@ -633,37 +633,51 @@ def trim_csvfile(csvfile, seconds=100.0, timeout=0.3):
         raise IOError(f'Terminating in trim_csvfile function at {now} for {csvfile}') 
     """
     
-def trim_csvfile(csvfile, seconds=100.0, timeout=0.3):
-    # idea is just to keep up to one hour of rows in the CSV files, so they do not become too large
+def trim_csvfile(csvfile, seconds=None, timeout=0.1):
+    if not seconds:
+        return
+    # idea is just to keep up to 10 minutes of rows in the CSV files, so they do not become too large
+    numlinestokeep = int(seconds * 3) # assumes 3 channels and 1 second packets
+
+    def wc_minus_l(fname):
+        p = subprocess.Popen(['wc', '-l', fname], stdout=subprocess.PIPE, 
+                                                stderr=subprocess.PIPE)
+        result, err = p.communicate()
+        if p.returncode != 0:
+            raise IOError(err)
+        return int(result.strip().split()[0])
+    
+    numlines=wc_minus_l(csvfile)
+    if numlines <= numlinestokeep:
+        return
+
     now = obspy.UTCDateTime()
-    tailed=False
-    while obspy.UTCDateTime() - now < timeout and tailed==False:
+    read=False
+    lines=[]
+    while obspy.UTCDateTime() - now < timeout and read==False:
         try:
             with open(csvfile, 'r') as fptr:
                 fcntl.flock(fptr, fcntl.LOCK_EX | fcntl.LOCK_NB) # lock the file so nothing else messes with it
 
-                # do we just cut the CSV file
-                headproc = subprocess.Popen(['head', '-n', 1, csvfile], stdout=subprocess.PIPE)
-                header = headproc.stdout.readlines()
-                tailproc = subprocess.Popen(['tail', '-n', numlines, csvfile], stdout=subprocess.PIPE)
-                lines = tailproc.stdout.readlines()
-                tailed=True
+                # read all lines of file
+                lines = fptr.readlines()
+                read = True
         except Exception as e:
-            print('Exception in latency/trim_csvfile while reading\n',e)
-            time.sleep(0.01) 
-    now = obspy.UTCDateTime()
-    rewritten=False
-    while obspy.UTCDateTime() - now < timeout and tailed and rewritten==False:
-        try:
-            with open(csvfile, 'w') as fptr2:
-                fptr2.write(header)
-                fptr2.write(lines)
-                rewritten=True
-        except Exception as e:
-            print('Exception in latency/trim_csvfile while writing\n',e)
-            time.sleep(0.01) 
-        
+            print(f'Exception reading lines from {csvfile}: {e}')
 
+    if len(lines)>numlinestokeep:
+        written=False
+        now = obspy.UTCDateTime()
+        while obspy.UTCDateTime() - now < timeout and written==False:
+            try:
+                with open(csvfile, 'w') as fptr2:
+                    fcntl.flock(fptr2, fcntl.LOCK_EX | fcntl.LOCK_NB) # lock the file so nothing else messes with it
+                    fptr2.write(lines[0])
+                    for line in lines[-numlinestokeep:]:
+                        fptr2.write(line)
+                    written=True
+            except Exception as e:
+                print(f'Exception writing lines to {csvfile}: {e}')
 
 def get_params(argv):
 
