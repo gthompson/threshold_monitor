@@ -567,7 +567,10 @@ def send_email_alarm(subject, body, email_list, pngfile=None, verbose=True):
     cmd += f' {recipients}'   
     if verbose: # for log file, or screen output
         print(f'cmd="{cmd}"')  
-    subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True, encoding='UTF-8')
+    try:
+        subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True, encoding='UTF-8')
+    except Exception as e:
+        print('Failed to send email', e)
 
 #######################################
 def append_to_csvfile(csvfile, row, timeout=0.3):
